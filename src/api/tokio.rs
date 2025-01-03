@@ -733,6 +733,26 @@ impl ApiRepo {
         }
     }
 
+    /// This will attempt the fetch the file locally first, then [`Api.download_with_progress`]
+    /// if the file is not present.
+    /// ```no_run
+    /// # use hf_hub::api::tokio::Api;
+    /// # tokio_test::block_on(async {
+    /// let api = Api::new().unwrap();
+    /// let local_filename = api.model("gpt2".to_string()).get("model.safetensors").await.unwrap();
+    /// # })
+    pub async fn get_with_progress<P: Progress + Clone + Send + Sync + 'static>(
+        &self,
+        filename: &str,
+        progress: P,
+    ) -> Result<PathBuf, ApiError> {
+        if let Some(path) = self.api.cache.repo(self.repo.clone()).get(filename) {
+            Ok(path)
+        } else {
+            self.download_with_progress(filename, progress).await
+        }
+    }
+
     /// Downloads a remote file (if not already present) into the cache directory
     /// to be used locally.
     /// This functions require internet access to verify if new versions of the file
